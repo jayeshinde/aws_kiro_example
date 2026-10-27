@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Read-only product list API backed by DynamoDB
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Default: '*'
+    Description: Set to the exact Amplify frontend origin before production.
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 10
+    MemorySize: 256
+Resources:
+  ProductsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: productId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: productId
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  ProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: index.handler
+      Environment:
+        Variables:
+          PRODUCTS_TABLE: !Ref ProductsTable
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ProductsTable
+      Events:
+        GetProducts:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ProductsHttpApi
+            Path: /products
+            Method: GET
+  ProductsHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowedOrigin
+        AllowHeaders:
+          - content-type
+          - authorization
+        AllowMethods:
+          - GET
+          - OPTIONS
+        MaxAge: 600
+Outputs:
+  ApiUrl:
+    Description: Base URL for the product API
+    Value: !Sub 'https://${ProductsHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}'
+  ProductsTableName:
+    Description: DynamoDB table name
+    Value: !Ref ProductsTable

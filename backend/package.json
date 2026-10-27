@@ -1,0 +1,10 @@
+{
+  "name": "product-list-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only DynamoDB product list API",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.900.0",
+    "@aws-sdk/lib-dynamodb": "^3.900.0"
+  }
+}
